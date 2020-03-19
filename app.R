@@ -63,7 +63,9 @@ ui <- fluidPage(
                              "Greece"="Greece",
                              "Norway"="Norway",
                              "Mexico"="Mexico",
-                             "Portugal"="Portugal"
+                             "Portugal"="Portugal",
+                             "Sri Lanka"="Sri Lanka",
+                             "Argentina"="Argentina"
                              ),
                            selected = "World"),
         checkboxInput("logscale", "Log Scale", value = FALSE),
@@ -76,10 +78,15 @@ ui <- fluidPage(
                              plotOutput("HistCSD"),
                              textOutput("CSD"),
                              p("This graphic shows the number of Confirmed, Survived, 
-                               and Dead.")),
+                               and Dead."),
+                             br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
+                             br(),br(),br(),br(),br(),br()),
                     tabPanel("Deaths",
+                          
+                             plotOutput("Deaths"),
                              textOutput("DeathToll"),
-                             plotOutput("Deaths")),
+                             br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
+                             br(),br(),br(),br(),br(),br()),
                     tabPanel("Deaths/(Deaths+Recovered)",
                              
                              plotOutput("HistDoverDR"),
@@ -92,7 +99,10 @@ ui <- fluidPage(
                                different recovery rates, for countries that have
                                been more recently afflicted, this
                                overestimates the mortality rate. However, on a global scale, this is 
-                               more accurate than Deaths/Confirmed. Note if there are 0 deaths, an error will return under a log scale")),
+                               more accurate than Deaths/Confirmed. Note if there are 0 deaths, an error will return under a log scale"),
+                             
+                             br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
+                             br(),br(),br(),br(),br(),br()),
                     tabPanel("Deaths/Confirmed",
               
                              plotOutput("HistDoverTotal"),
@@ -100,7 +110,10 @@ ui <- fluidPage(
                              h2("Limitations"),
                              p("Dividing Deaths/Confirmed underestimates the 
                                mortality rates of COVID. This is because a certain number of those 
-                               with unknown status will die, but this is unaccounted for in the numerator.Note if there are 0 deaths, an error will return under a log scale")))
+                               with unknown status will die, but this is unaccounted for in the numerator.Note if there are 0 deaths, an error will return under a log scale"),
+                             
+                             br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
+                             br(),br(),br(),br(),br(),br()))
       )
    )
 )
@@ -148,7 +161,7 @@ server <- function(input, output) {
   WW_proportion <- worldwide_deaths/(worldwide_deaths+worldwide_recovered)*100
   dates <- as.Date(colnames(confirmed),format = "%m/%d/%y")
   
-  WW_death_over_confirmed <- worldwide_deaths/worldwide_confirmed 
+  WW_death_over_confirmed <- worldwide_deaths/worldwide_confirmed*100
   
   cconfirmed <- filter(confirmed,`Country/Region` != "China")
   ddeaths <- filter(deaths, `Country/Region` != "China")
@@ -159,7 +172,7 @@ server <- function(input, output) {
   worldwide_recovered_noChina <- colSums(rrecovered[,5:length(rrecovered)])
   
   WW_proportion_noChina <- worldwide_deaths_noChina/(worldwide_deaths_noChina+worldwide_recovered_noChina)*100
-  WW_death_over_confirmed_noChina <- worldwide_deaths_noChina/worldwide_confirmed_noChina 
+  WW_death_over_confirmed_noChina <- worldwide_deaths_noChina/worldwide_confirmed_noChina*100
 
   
   
@@ -179,7 +192,7 @@ server <- function(input, output) {
     }
     else if (input$countries == "World without China"){
       paste("As of", dates[length(dates)-1],",",
-            "the confirmed number of cases in the World is", 
+            "the confirmed number of cases in the World without China is", 
             #tail(worldwide_confirmed_noChina,1),
             worldwide_confirmed_noChina[length(worldwide_confirmed_noChina)-1],
             ", the total number of deaths is", 
@@ -359,14 +372,14 @@ server <- function(input, output) {
     }
     else if (input$countries == "World without China"){
       paste("As of",dates[length(dates)-1], 
-            "the total number of Worldwide deaths without China is",
+            "the total number of deaths in the World without China is",
             tail(worldwide_deaths_noChina[length(worldwide_deaths_noChina)-1]))
     }
     else {
       Country_deaths <- filter(data_deaths, Country==input$countries)
       paste("As of",dates[length(dates)], 
             "the total number of deaths in",input$countries ,"is",
-            tail(Country_deaths$Deaths[length(Country_deaths$Deaths)-1]))
+            tail(Country_deaths$Deaths[length(Country_deaths$Deaths)]))
     }
   })
   
@@ -421,7 +434,7 @@ server <- function(input, output) {
         } 
         else {
           plot(worldwide_deaths_noChina~dates[5:length(dates)],
-               main = paste(input$countries,"Deaths)"),
+               main = paste(input$countries,"Deaths"),
                xlab= "Time", ylab = "Count", type = "o")
         }
       }
@@ -628,24 +641,24 @@ server <- function(input, output) {
       if (input$logscale == TRUE){
         if (input$rawchange == TRUE){
           plot(diff(log(WW_death_over_confirmed))~dates[6:length(dates)],
-               main = paste(input$countries,"Log Scale Change per Day Deaths/Confimed"),
+               main = paste(input$countries,"Log Scale Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
         }
         else{
           plot(log(WW_death_over_confirmed)~dates[5:length(dates)],
-               main = paste(input$countries,"Log Scale Deaths/Confimed"),
+               main = paste(input$countries,"Log Scale Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
         }
       }
       else{
         if (input$rawchange == TRUE){
           plot(diff(WW_death_over_confirmed)~dates[6:length(dates)],
-               main = paste(input$countries,"Change per Day Deaths/Confimed"),
+               main = paste(input$countries,"Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
         }
         else{
           plot(WW_death_over_confirmed~dates[5:length(dates)],
-               main = paste(input$countries,"Deaths/Confimed"),
+               main = paste(input$countries,"Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
         }
       }
@@ -654,24 +667,24 @@ server <- function(input, output) {
       if (input$logscale == TRUE){
         if (input$rawchange == TRUE){
           plot(diff(log(WW_death_over_confirmed_noChina))~dates[6:length(dates)],
-               main = paste(input$countries,"Log Scale Change per Day Deaths/Confimed"),
+               main = paste(input$countries,"Log Scale Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
         }
         else{
           plot(log(WW_death_over_confirmed_noChina)~dates[5:length(dates)],
-               main = paste(input$countries,"Log Scale Deaths/Confimed"),
+               main = paste(input$countries,"Log Scale Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
         }
       }
       else{
         if (input$rawchange == TRUE){
           plot(diff(WW_death_over_confirmed_noChina)~dates[6:length(dates)],
-               main = paste(input$countries,"Change per Day Deaths/Confimed"),
+               main = paste(input$countries,"Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
         }
         else{
           plot(WW_death_over_confirmed_noChina~dates[5:length(dates)],
-               main = paste(input$countries,"Deaths/Confimed"),
+               main = paste(input$countries,"Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
         }
       }

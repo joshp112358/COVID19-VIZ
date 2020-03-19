@@ -5,8 +5,8 @@ account: joshyp
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1962836
-bundleId: 2896375
+bundleId: 2896609
 url: https://joshyp.shinyapps.io/COVID_VIZ/
-when: 1584584303.84684
+when: 1584590449.68154
 asMultiple: FALSE
 asStatic: FALSE
