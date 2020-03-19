@@ -180,26 +180,26 @@ server <- function(input, output) {
   
   output$CSD <- renderText({ 
     if (input$countries == "World"){
-      paste("As of", dates[length(dates)-1],",",
+      paste("As of", dates[length(dates)],",",
             "the confirmed number of cases in the World is", 
             #tail(worldwide_confirmed,1),
-            worldwide_confirmed[length(worldwide_confirmed)-1],
+            worldwide_confirmed[length(worldwide_confirmed)],
             ", the total number of deaths is", 
             #tail(worldwide_deaths,1),
-            worldwide_deaths[length(worldwide_deaths)-1],
+            worldwide_deaths[length(worldwide_deaths)],
             ", and the total number recovered is", 
-            worldwide_recovered[length(worldwide_recovered)-1])
+            worldwide_recovered[length(worldwide_recovered)])
     }
     else if (input$countries == "World without China"){
-      paste("As of", dates[length(dates)-1],",",
+      paste("As of", dates[length(dates)],",",
             "the confirmed number of cases in the World without China is", 
             #tail(worldwide_confirmed_noChina,1),
-            worldwide_confirmed_noChina[length(worldwide_confirmed_noChina)-1],
+            worldwide_confirmed_noChina[length(worldwide_confirmed_noChina)],
             ", the total number of deaths is", 
             #tail(worldwide_deaths_noChina,1),
-            worldwide_deaths_noChina[length(worldwide_deaths_noChina)-1],
+            worldwide_deaths_noChina[length(worldwide_deaths_noChina)],
             ", and the total number recovered is", 
-            worldwide_recovered_noChina[length(worldwide_recovered_noChina)-1])
+            worldwide_recovered_noChina[length(worldwide_recovered_noChina)])
     }
     else {
       Country_confirmed <- filter(data_confirmed, Country==input$countries)
@@ -366,14 +366,14 @@ server <- function(input, output) {
   
   output$DeathToll <- renderText({
     if (input$countries == "World"){
-      paste("As of",dates[length(dates)-1], 
+      paste("As of",dates[length(dates)], 
             "the total number of Worldwide deaths is",
-            tail(worldwide_deaths[length(worldwide_deaths)-1]))
+            tail(worldwide_deaths[length(worldwide_deaths)]))
     }
     else if (input$countries == "World without China"){
-      paste("As of",dates[length(dates)-1], 
+      paste("As of",dates[length(dates)], 
             "the total number of deaths in the World without China is",
-            tail(worldwide_deaths_noChina[length(worldwide_deaths_noChina)-1]))
+            tail(worldwide_deaths_noChina[length(worldwide_deaths_noChina)]))
     }
     else {
       Country_deaths <- filter(data_deaths, Country==input$countries)
@@ -489,15 +489,15 @@ server <- function(input, output) {
   
   output$DDR <- renderText(
     if (input$countries == "World"){
-      paste("As of", dates[length(dates)-1], ",",
+      paste("As of", dates[length(dates)], ",",
             "the Dead/(Dead+Recovered) Rate in the World is",
-            round(WW_proportion[length(WW_proportion)-1],2), "%")
+            round(WW_proportion[length(WW_proportion)],2), "%")
     }
     
     else if (input$countries == "World without China"){
-      paste("As of", dates[length(dates)-1], ",",
+      paste("As of", dates[length(dates)], ",",
             "the Dead/(Dead+Recovered) Rate in the World without China is",
-            round(WW_proportion_noChina[length(WW_proportion_noChina)-1],2), "%")
+            round(WW_proportion_noChina[length(WW_proportion_noChina)],2), "%")
     }
     
     else {
@@ -616,22 +616,22 @@ server <- function(input, output) {
   
   output$Naive <- renderText(
     if (input$countries == "World"){
-      paste("As of", dates[length(dates)-1], ",",
+      paste("As of", dates[length(dates)], ",",
             "the Dead/Confirmed rate across the World is",
-            round(WW_death_over_confirmed[length(WW_death_over_confirmed)-1],2), "%")
+            round(WW_death_over_confirmed[length(WW_death_over_confirmed)],2), "%")
     }
     else if (input$countries == "World without China"){
-      paste("As of", dates[length(dates)-1], ",",
+      paste("As of", dates[length(dates)], ",",
             "the Dead/Confirmed rate across the World without China is",
-            round(WW_death_over_confirmed_noChina[length(WW_death_over_confirmed_noChina)-1],2), "%")
+            round(WW_death_over_confirmed_noChina[length(WW_death_over_confirmed_noChina)],2), "%")
     }
     else {
       Country_confirmed <- filter(data_confirmed, Country==input$countries)
       Country_deaths <- filter(data_deaths, Country==input$countries)
-      proportion <- Country_deaths$Deaths/Country_confirmed$Confirmed
+      proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
       paste("As of", dates[length(dates)], ",",
             "the Dead/Dead+Recovered rate in ", input$countries, "is",
-            round(proportion[length(proportion)-1],2), "%")
+            round(proportion[length(proportion)],2), "%")
     }
   )
   
@@ -695,7 +695,7 @@ server <- function(input, output) {
         if (input$rawchange == TRUE){
           Country_confirmed <- filter(data_confirmed, Country==input$countries)
           Country_deaths <- filter(data_deaths, Country==input$countries)
-          proportion <- Country_deaths$Deaths/Country_confirmed$Confirmed
+          proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
           plot(diff(log(proportion))~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
                main =  paste(input$countries,"Log Scale Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
@@ -703,7 +703,7 @@ server <- function(input, output) {
         else {
           Country_confirmed <- filter(data_confirmed, Country==input$countries)
           Country_deaths <- filter(data_deaths, Country==input$countries)
-          proportion <- Country_deaths$Deaths/Country_confirmed$Confirmed
+          proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
           plot(log(proportion)~Country_confirmed$Date, 
                main =  paste(input$countries,"Log Scale Deaths/Confirmed"),
                xlab= "Time", ylab = "Log Scale Percentage", type = "o")
@@ -713,7 +713,7 @@ server <- function(input, output) {
         if (input$rawchange == TRUE){
           Country_confirmed <- filter(data_confirmed, Country==input$countries)
           Country_deaths <- filter(data_deaths, Country==input$countries)
-          proportion <- Country_deaths$Deaths/Country_confirmed$Confirmed
+          proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
           plot(diff(proportion)~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
                main =  paste(input$countries,"Change per Day Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
@@ -721,7 +721,7 @@ server <- function(input, output) {
         else{
           Country_confirmed <- filter(data_confirmed, Country==input$countries)
           Country_deaths <- filter(data_deaths, Country==input$countries)
-          proportion <- Country_deaths$Deaths/Country_confirmed$Confirmed
+          proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
           plot(proportion~Country_confirmed$Date, 
                main =  paste(input$countries,"Deaths/Confirmed"),
                xlab= "Time", ylab = "Percentage", type = "o")
