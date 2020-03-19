@@ -17,7 +17,7 @@ ui <- fluidPage(
    # Application title
    titlePanel("COVID-19 Visualizations"
             ),
-   p("by Joshua Paik"),
+   p("by: Joshua Paik"),
    p("email: joshdpaik@gmail.com"),
    p("Data is from Johns Hopkins CSSE (https://github.com/CSSEGISandData/COVID-19)
      which is scraped from various sources and updated once daily. 
