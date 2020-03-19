@@ -98,7 +98,7 @@ ui <- fluidPage(
                              ,"India" = "India"
                              ,"Indonesia" = "Indonesia"
                              ,"Iran" = "Iran"
-                             ,"Iraq = Iraq"
+                             ,"Iraq" = "Iraq"
                              ,"Ireland" = "Ireland"
                              ,"Israel" = "Israel"
                              ,"Italy" = "Italy"
