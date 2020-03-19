@@ -177,7 +177,8 @@ ui <- fluidPage(
                              ),
                            selected = "World"),
         checkboxInput("logscale", "Log Scale", value = FALSE),
-        checkboxInput("rawchange", "First Derivative", value = FALSE)),
+        checkboxInput("rawchange", "First Derivative", value = FALSE),
+        checkboxInput("percChange", "Percent Change", value = FALSE)),
         
       mainPanel(
         tabsetPanel(id = "tab_being_displayed",
@@ -283,7 +284,16 @@ server <- function(input, output) {
   WW_death_over_confirmed_noChina <- worldwide_deaths_noChina/worldwide_confirmed_noChina*100
 
   
+##helper 
   
+  percChange <- function(df){
+    y<-numeric()
+    for(i in 2:length(df)){
+      y<-append(y,(df[i]-df[i-1])/df[i-1] * 100)
+    }
+    return(y)
+  }
+
 ## CODE -------
   
   output$CSD <- renderText({ 
@@ -326,44 +336,101 @@ server <- function(input, output) {
 ## Plots Confirmed, Recovered, Dead
   output$HistCSD <- renderPlot({
     if (input$countries == "World"){
+      #_____ start of Log Scale Boolean
       if (input$logscale== TRUE){
+        # Start of raw change
         if (input$rawchange==TRUE){
-          plot(diff(log(worldwide_confirmed))~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
-               main =  paste(input$countries,"Log Scale Daily Count in Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Log Scale Count", type = "o")
-          points(diff(log(worldwide_deaths))~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
-          points(diff(log(worldwide_recovered))~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          # Start of perc CHange
+          if (input$percChange == TRUE){
+            plot(percChange(diff(log(worldwide_confirmed)))~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Percentage Change of Log Scale \n
+                               Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Percentage of Log Scale Count", type = "o")
+            points(percChange(diff(log(worldwide_deaths)))~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(percChange(diff(log(worldwide_recovered)))~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          #end of perc Change
+          else{
+            plot(diff(log(worldwide_confirmed))~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Log Scale Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(diff(log(worldwide_deaths))~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(diff(log(worldwide_recovered))~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
         }
+        #end of raw change
         else{
-          plot(log(worldwide_confirmed)~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
-               main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Log Scale Count", type = "o")
-          points(log(worldwide_deaths)~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
-          points(log(worldwide_recovered)~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          #Start of perc Change
+          if (input$percChange == TRUE){
+            plot(percChange(log(worldwide_confirmed))~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Percentage Change in Log Scale Count of Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(percChange(log(worldwide_deaths))~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(percChange(log(worldwide_recovered))~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          #end of perc change
+          else{
+            
+            plot(log(worldwide_confirmed)~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(log(worldwide_deaths)~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(log(worldwide_recovered)~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
         }
       }
+      #end of log scale
       else {
+        #
         if(input$rawchange==TRUE){
-          plot(diff(worldwide_confirmed)~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
-               main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Count", type = "o")
-          points(diff(worldwide_deaths)~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
-          points(diff(worldwide_recovered)~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          if(input$percChange == TRUE){
+            plot(percChange(diff(worldwide_confirmed))~as.Date(colnames(confirmed[,7:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Percentage Change in Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Percentage", type = "o")
+            points(percChange(diff(worldwide_deaths))~as.Date(colnames(deaths[,7:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(percChange(diff(worldwide_recovered))~as.Date(colnames(recovered[,7:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          else {
+            plot(diff(worldwide_confirmed)~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Count", type = "o")
+            points(diff(worldwide_deaths)~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(diff(worldwide_recovered)~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          
         }
         else{
-          plot(worldwide_confirmed~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
-               main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Count", type = "o")
-          points(worldwide_deaths~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
-          points(worldwide_recovered~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          if(input$percChange == TRUE){
+            plot(percChange(worldwide_confirmed)~as.Date(colnames(confirmed[,6:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Percentage Change in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Percentage", type = "o")
+            points(percChange(worldwide_deaths)~as.Date(colnames(deaths[,6:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(percChange(worldwide_recovered)~as.Date(colnames(recovered[,6:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            
+          }
+          else{
+            plot(worldwide_confirmed~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
+                 main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Count", type = "o")
+            points(worldwide_deaths~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
+            points(worldwide_recovered~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
         }
       }
     }
@@ -836,6 +903,9 @@ server <- function(input, output) {
         }
       }
     }
+    
+    
+    
   })
 }
 
