@@ -230,7 +230,7 @@ ui <- fluidPage(
                              fluidPage(
                                fluidRow(
                                  column(4, selectInput("Country1","Country1",
-                                                       countries_list,"US")
+                                                       countries_list,"Italy")
                                         ),
                                  column(8, sliderInput("Country1_Lag", 
                                                        "Forward Shift for Country1",
@@ -239,7 +239,7 @@ ui <- fluidPage(
                                ),
                                fluidRow(
                                  column(4, selectInput("Country2","Country2",
-                                                       countries_list,"Italy"
+                                                       countries_list,"US"
                                  )),
                                  column(8,sliderInput("Country2_Lag", 
                                                       "Forward Shift for Country2",
@@ -1130,8 +1130,9 @@ server <- function(input, output) {
             "the Dead/Dead+Recovered rate in ", input$countries, "is",
             round(proportion[length(proportion)],2), "%")
     }
+    
   )
-  
+
   #------
   output$HistDoverTotal <- renderPlot({
     if (input$countries == "World"){
@@ -1323,40 +1324,352 @@ server <- function(input, output) {
     }
   })
   
+  shift <- function(l, n){
+    r = l
+    if (n==0){  
+      return(r)
+    }
+    for (i in 1:n){
+      r <- c(NA, r)
+    }
+    return(r)
+  }
+  
   # -------OVERLAY-----
   output$Overlay <- renderPlot({
     if (input$ChooseOption == "Confirmed"){
-      Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
-      Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
-      plot(lag(Country_confirmed_1$Confirmed, input$Country1_Lag), col = "black", type = "o",
-           main = paste("Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
-           ylab = "Count", xlab = "Time")
-      points(lag(Country_confirmed_2$Confirmed, input$Country2_Lag), col = "red", type = "o")
-      
-      legend("topleft", legend=c(input$Country1,input$Country2),
-             col=c("black", "red"),lty=1:1, cex=0.8)
+      if (input$logscale == TRUE){
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(percChange(diff(log(Country_confirmed_1$Confirmed))), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Count of Log Scale Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(diff(log(Country_confirmed_2$Confirmed))), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(diff(log(Country_confirmed_1$Confirmed)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Daily Count of Log Scale Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Log Scale Count", xlab = "Time",xlim=c(0,80))
+            points(shift(diff(log(Country_confirmed_2$Confirmed)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        
+        }
+        else {
+          if (input$percChange == TRUE){
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(percChange(log(Country_confirmed_1$Confirmed)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Log Scale Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(log(Country_confirmed_2$Confirmed), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(log(Country_confirmed_1$Confirmed), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Log Scale Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Log Scale Count", xlab = "Time",xlim=c(0,80))
+            points(shift(log(Country_confirmed_2$Confirmed), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        
+        }
+      }
+      else{
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(percChange(diff(Country_confirmed_1$Confirmed)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Count Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(Country_confirmed_2$Confirmed, input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(diff(Country_confirmed_1$Confirmed), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Daily Count Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time",xlim=c(0,80))
+            points(shift(Country_confirmed_2$Confirmed, input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        }
+        else{
+          if (input$percChange == TRUE){
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(percChange(Country_confirmed_1$Confirmed), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(Country_confirmed_2$Confirmed), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+            Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+            plot(shift(Country_confirmed_1$Confirmed, input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time", xlim=c(0,80))
+            points(shift(Country_confirmed_2$Confirmed, input$Country2_Lag), col = "red", type = "o",xlim=c(0,80))
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        
+        }
+      }
     }
     else if (input$ChooseOption == "Deaths"){
-      Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
-      Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
-      plot(lag(Country_deaths_1$Deaths, input$Country1_Lag), col = "black", type = "o",
-           main = paste("Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
-           ylab = "Count", xlab = "Time")
-      points(lag(Country_deaths_2$Deaths, input$Country2_Lag), col = "red", type = "o")
-      
-      legend("topleft", legend=c(input$Country1,input$Country2),
-             col=c("black", "red"),lty=1:1, cex=0.8)
+      if (input$logscale == TRUE){
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(percChange(diff(log(Country_deaths_1$Deaths))), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Count of Log Scale Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(diff(log(Country_deaths_2$Deaths)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(diff(log(Country_deaths_1$Deaths)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Daily Count of Log Scale Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Log Scale Count", xlab = "Time",xlim=c(0,80))
+            points(shift(diff(log(Country_deaths_2$Deaths)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        }
+        else{
+          if (input$percChange == TRUE){
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(percChange(log(Country_deaths_1$Deaths)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Log Scale Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(log(Country_deaths_2$Deaths), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(log(Country_deaths_1$Deaths), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Log Scale Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Log Scale Count", xlab = "Time",xlim=c(0,80))
+            points(shift(log(Country_deaths_2$Deaths), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          
+        }
+      }
+      else {
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(percChange(diff(Country_deaths_1$Deaths)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Counts of Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(diff(Country_deaths_2$Deaths)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(diff(Country_deaths_1$Deaths), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Daily Counts of Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time",xlim=c(0,80))
+            points(shift(diff(Country_deaths_2$Deaths), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          
+        }
+        else {
+          if (input$percChange == TRUE){
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(percChange(Country_deaths_1$Deaths), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(Country_deaths_2$Deaths), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+            Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+            plot(shift(Country_deaths_1$Deaths, input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time", xlim=c(0,100))
+            points(shift(Country_deaths_2$Deaths, input$Country2_Lag), col = "red", type = "o", xlim=c(0,100))
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          
+        }
+      }
     }
     else if (input$ChooseOption == "Recovered"){
-      Country_survived_1 <- filter(data_recovered, Country==input$Country1)
-      Country_survived_2 <- filter(data_recovered, Country==input$Country2)
-      plot(lag(Country_survived_1$Recovered, input$Country1_Lag), col = "black", type = "o",
-           main = paste("Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
-           ylab = "Count", xlab = "Time")
-      points(lag(Country_survived_2$Recovered, input$Country2_Lag), col = "red", type = "o")
+      if (input$logscale == TRUE){
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(percChange(diff(log(Country_survived_1$Recovered))), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Count of Log Scale Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(diff(log(Country_survived_2$Recovered))), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            if (input$percChange == TRUE){
+              Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+              Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+              plot(shift(percChange(diff(log(Country_survived_1$Recovered))), input$Country1_Lag), col = "black", type = "o",
+                   main = paste("Percentage Change of Daily Count of Log Scale Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                   ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+              points(shift(percChange(diff(log(Country_survived_2$Recovered))), input$Country2_Lag), col = "red", type = "o")
+              
+              legend("topleft", legend=c(input$Country1,input$Country2),
+                     col=c("black", "red"),lty=1:1, cex=0.8)
+            }
+            else {
+              Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+              Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+              plot(shift(diff(log(Country_survived_1$Recovered)), input$Country1_Lag), col = "black", type = "o",
+                   main = paste("Daily Count of Log Scale Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                   ylab = "Count", xlab = "Time",xlim=c(0,80))
+              points(shift(diff(log(Country_survived_2$Recovered)), input$Country2_Lag), col = "red", type = "o")
+              
+              legend("topleft", legend=c(input$Country1,input$Country2),
+                     col=c("black", "red"),lty=1:1, cex=0.8)
+            }
+            
+          }
+          
+        }
+        else {
+          if (input$percChange == TRUE){
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(percChange(log(Country_survived_1$Recovered)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Log Scale Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(log(Country_survived_2$Recovered)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(log(Country_survived_1$Recovered), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Log Scale Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Log Scale Count", xlab = "Time",xlim=c(0,80))
+            points(shift(log(Country_survived_2$Recovered), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          
+        }
+      }
+      else {
+        if (input$rawchange == TRUE){
+          if (input$percChange == TRUE){
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(percChange(diff(Country_survived_1$Recovered)), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Daily Count of Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(diff(Country_survived_2$Recovered)), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(diff(Country_survived_1$Recovered), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Daily Count of Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time",xlim=c(0,80))
+            points(shift(diff(Country_survived_2$Recovered), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          
+        }
+        else {
+          if (input$percChange == TRUE){
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(percChange(Country_survived_1$Recovered), input$Country1_Lag), col = "black", type = "o",
+                 main = paste("Percentage Change of Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+                 ylab = "Percentage", xlab = "Time",xlim=c(0,80))
+            points(shift(percChange(Country_survived_2$Recovered), input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+          else{
+            Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+            Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+            plot(shift(Country_survived_1$Recovered, input$Country1_Lag), 
+                 col = "black", 
+                 type = "o",
+                 main = paste("Recovered",input$Country1, "Shifted By", 
+                              input$Country1_Lag, "and", input$Country2, 
+                              "Shifted By",input$Country2_Lag ),
+                 ylab = "Count", xlab = "Time",xlim=c(0,80))
+            points(shift(Country_survived_2$Recovered, input$Country2_Lag), col = "red", type = "o")
+            
+            legend("topleft", legend=c(input$Country1,input$Country2),
+                   col=c("black", "red"),lty=1:1, cex=0.8)
+          }
+        }
       
-      legend("topleft", legend=c(input$Country1,input$Country2),
-             col=c("black", "red"),lty=1:1, cex=0.8)
+      }
     }
   })
 }
