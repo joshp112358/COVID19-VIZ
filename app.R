@@ -11,6 +11,151 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 
+world <- c(  "World" = "World",
+             "World without China" = "World without China")
+countries_list <-c(
+  "Afghanistan" = "Afghanistan"
+  ,"Albania" = "Albania"
+  ,"Algeria" = "Algeria"
+  ,"Andorra" = "Andorra"
+  ,"Antigua and Barbuda" = "Antigua and Barbuda"
+  ,"Argentina" = "Argentina"
+  ,"Armenia" = "Armenia"
+  #,"Aruba" = "Aruba"
+  ,"Australia" = "Australia"
+  ,"Austria" = "Austria"
+  ,"Azerbaijan" = "Azerbaijan"
+  ,"Bahrain" = "Bahrain"
+  ,"Bangladesh" = "Bangladesh"
+  ,"Belarus" = "Belarus"
+  ,"Belgium" = "Belgium"
+  ,"Bhutan" = "Bhutan"
+  ,"Bolivia" = "Bolivia"
+  ,"Bosnia and Herzegovina" = "Bosnia and Herzegovina"
+  ,"Brazil" = "Brazil"
+  ,"Brunei" = "Brunei"
+  ,"Bulgaria" = "Bulgaria"
+  ,"Burkina Faso" = "Burkina Faso"
+  ,"Cambodia" = "Cambodia"
+  ,"Cameroon" = "Cameroon"
+  ,"Canada" = "Canada"
+  #,"Cayman Islands" = "Cayman Islands"
+  ,"Chile" = "Chile"
+  ,"China" = "China"
+  ,"Colombia" = "Colombia"
+  ,"Congo (Kinshasa)" = "Congo (Kinshasa)"
+  ,"Costa Rica" = "Costa Rica"
+  ,"Cote d'Ivoire" = "Cote d'Ivoire"
+  ,"Croatia" = "Croatia"
+  ,"Cruise Ship" = "Cruise Ship"
+  ,"Cuba" = "Cuba"
+  #,"Curacao" = "Curacao"
+  ,"Cyprus" = "Cyprus"
+  ,"Czechia" = "Czechia"
+  ,"Denmark" = "Denmark"
+  ,"Dominican Republic" = "Dominican Republic"
+  ,"Ecuador" = "Ecuador"
+  ,"Egypt" = "Egypt"
+  ,"Estonia" = "Estonia"
+  ,"Eswatini" = "Eswatini"
+  ,"Ethiopia" = "Ethiopia"
+  ,"Finland" = "Finland"
+  ,"France" = "France"
+  #,"French Guiana" = "French Guiana"
+  ,"Gabon" = "Gabon"
+  ,"Georgia" = "Georgia"
+  ,"Germany" = "Germany"
+  ,"Ghana" = "Ghana"
+  ,"Greece" = "Greece"
+  #,"Guadeloupe" = "Guadeloupe"
+  ,"Guatemala" = "Guatemala"
+  #,"Guernsey" = "Guernsey"
+  ,"Guinea" = "Guinea"
+  ,"Guyana" = "Guyana"
+  ,"Holy See" = "Holy See"
+  ,"Honduras" = "Honduras"
+  ,"Hungary" = "Hungary"
+  ,"Iceland" = "Iceland"
+  ,"India" = "India"
+  ,"Indonesia" = "Indonesia"
+  ,"Iran" = "Iran"
+  ,"Iraq" = "Iraq"
+  ,"Ireland" = "Ireland"
+  ,"Israel" = "Israel"
+  ,"Italy" = "Italy"
+  ,"Jamaica" = "Jamaica"
+  ,"Japan" = "Japan"
+  #,"Jersey" = "Jersey"
+  ,"Jordan" = "Jordan"
+  ,"Kazakhstan" = "Kazakhstan"
+  ,"Kenya" = "Kenya"
+  ,"Korea, South" = "Korea, South"
+  ,"Kuwait" = "Kuwait"
+  ,"Latvia" = "Latvia"
+  ,"Lebanon" = "Lebanon"
+  ,"Liechtenstein" = "Liechtenstein"
+  ,"Lithuania" = "Lithuania"
+  ,"Luxembourg" = "Luxembourg"
+  ,"Malaysia" = "Malaysia"
+  ,"Maldives" = "Maldives"
+  ,"Malta" = "Malta"
+  ,"Martinique" = "Martinique"
+  ,"Mauritania" = "Mauritania"
+  ,"Mexico" = "Mexico"
+  ,"Moldova" = "Moldova"
+  ,"Monaco" = "Monaco"
+  ,"Mongolia" = "Mongolia"
+  ,"Morocco" = "Morocco"
+  ,"Namibia" = "Namibia"
+  ,"Nepal" = "Nepal"
+  ,"Netherlands" = "Netherlands"
+  ,"New Zealand" = "New Zealand"
+  ,"Nigeria" = "Nigeria"
+  ,"North Macedonia" = "North Macedonia"
+  ,"Norway" = "Norway"
+  ,"Oman" = "Oman"
+  ,"Pakistan" = "Pakistan"
+  ,"Panama" = "Panama"
+  ,"Paraguay" = "Paraguay"
+  ,"Peru" = "Peru"
+  ,"Philippines" = "Philippines"
+  ,"Poland" = "Poland"
+  ,"Portugal" = "Portugal"
+  ,"Qatar" = "Qatar"
+  #,"Reunion" = "Reunion"
+  ,"Romania" = "Romania"
+  ,"Russia" = "Russia"
+  ,"Rwanda" = "Rwanda"
+  ,"Saint Lucia" = "Saint Lucia"
+  ,"Saint Vincent and the Grenadines" = "Saint Vincent and the Grenadines"
+  ,"San Marino" = "San Marino"
+  ,"Saudi Arabia" = "Saudi Arabia"
+  ,"Senegal" = "Senegal"
+  ,"Serbia" = "Serbia"
+  ,"Seychelles" = "Seychelles"
+  ,"Singapore" = "Singapore"
+  ,"Slovakia" = "Slovakia"
+  ,"Slovenia" = "Slovenia"
+  ,"South Africa" = "South Africa"
+  ,"Spain" = "Spain"
+  ,"Sri Lanka" = "Sri Lanka"
+  ,"Sudan" = "Sudan"
+  ,"Suriname" = "Suriname"
+  ,"Sweden" = "Sweden"
+  ,"Switzerland" = "Switzerland"
+  ,"Thailand" = "Thailand"
+  ,"Togo" = "Togo"
+  ,"Trinidad and Tobago" = "Trinidad and Tobago"
+  ,"Tunisia" = "Tunisia"
+  ,"Turkey" = "Turkey"
+  ,"Ukraine" = "Ukraine"
+  ,"United Arab Emirates" = "United Arab Emirates"
+  ,"United Kingdom" = "United Kingdom"
+  ,"Uruguay" = "Uruguay"
+  ,"US" = "US"
+  ,"Venezuela" = "Venezuela"
+  ,"Vietnam" = "Vietnam"
+)
 # ---------------------------- UI -----------------------------------
 ui <- fluidPage(
    
@@ -27,154 +172,8 @@ ui <- fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-        
-        
         selectInput("countries", "Countries",
-                           c(
-                             "World" = "World",
-                             "World without China" = "World without China",
-                             "Afghanistan" = "Afghanistan"
-                             ,"Albania" = "Albania"
-                             ,"Algeria" = "Algeria"
-                             ,"Andorra" = "Andorra"
-                             ,"Antigua and Barbuda" = "Antigua and Barbuda"
-                             ,"Argentina" = "Argentina"
-                             ,"Armenia" = "Armenia"
-                             #,"Aruba" = "Aruba"
-                             ,"Australia" = "Australia"
-                             ,"Austria" = "Austria"
-                             ,"Azerbaijan" = "Azerbaijan"
-                             ,"Bahrain" = "Bahrain"
-                             ,"Bangladesh" = "Bangladesh"
-                             ,"Belarus" = "Belarus"
-                             ,"Belgium" = "Belgium"
-                             ,"Bhutan" = "Bhutan"
-                             ,"Bolivia" = "Bolivia"
-                             ,"Bosnia and Herzegovina" = "Bosnia and Herzegovina"
-                             ,"Brazil" = "Brazil"
-                             ,"Brunei" = "Brunei"
-                             ,"Bulgaria" = "Bulgaria"
-                             ,"Burkina Faso" = "Burkina Faso"
-                             ,"Cambodia" = "Cambodia"
-                             ,"Cameroon" = "Cameroon"
-                             ,"Canada" = "Canada"
-                             #,"Cayman Islands" = "Cayman Islands"
-                             ,"Chile" = "Chile"
-                             ,"China" = "China"
-                             ,"Colombia" = "Colombia"
-                             ,"Congo (Kinshasa)" = "Congo (Kinshasa)"
-                             ,"Costa Rica" = "Costa Rica"
-                             ,"Cote d'Ivoire" = "Cote d'Ivoire"
-                             ,"Croatia" = "Croatia"
-                             ,"Cruise Ship" = "Cruise Ship"
-                             ,"Cuba" = "Cuba"
-                             #,"Curacao" = "Curacao"
-                             ,"Cyprus" = "Cyprus"
-                             ,"Czechia" = "Czechia"
-                             ,"Denmark" = "Denmark"
-                             ,"Dominican Republic" = "Dominican Republic"
-                             ,"Ecuador" = "Ecuador"
-                             ,"Egypt" = "Egypt"
-                             ,"Estonia" = "Estonia"
-                             ,"Eswatini" = "Eswatini"
-                             ,"Ethiopia" = "Ethiopia"
-                             ,"Finland" = "Finland"
-                             ,"France" = "France"
-                             #,"French Guiana" = "French Guiana"
-                             ,"Gabon" = "Gabon"
-                             ,"Georgia" = "Georgia"
-                             ,"Germany" = "Germany"
-                             ,"Ghana" = "Ghana"
-                             ,"Greece" = "Greece"
-                             #,"Guadeloupe" = "Guadeloupe"
-                             ,"Guatemala" = "Guatemala"
-                             #,"Guernsey" = "Guernsey"
-                             ,"Guinea" = "Guinea"
-                             ,"Guyana" = "Guyana"
-                             ,"Holy See" = "Holy See"
-                             ,"Honduras" = "Honduras"
-                             ,"Hungary" = "Hungary"
-                             ,"Iceland" = "Iceland"
-                             ,"India" = "India"
-                             ,"Indonesia" = "Indonesia"
-                             ,"Iran" = "Iran"
-                             ,"Iraq" = "Iraq"
-                             ,"Ireland" = "Ireland"
-                             ,"Israel" = "Israel"
-                             ,"Italy" = "Italy"
-                             ,"Jamaica" = "Jamaica"
-                             ,"Japan" = "Japan"
-                             #,"Jersey" = "Jersey"
-                             ,"Jordan" = "Jordan"
-                             ,"Kazakhstan" = "Kazakhstan"
-                             ,"Kenya" = "Kenya"
-                             ,"Korea, South" = "Korea, South"
-                             ,"Kuwait" = "Kuwait"
-                             ,"Latvia" = "Latvia"
-                             ,"Lebanon" = "Lebanon"
-                             ,"Liechtenstein" = "Liechtenstein"
-                             ,"Lithuania" = "Lithuania"
-                             ,"Luxembourg" = "Luxembourg"
-                             ,"Malaysia" = "Malaysia"
-                             ,"Maldives" = "Maldives"
-                             ,"Malta" = "Malta"
-                             ,"Martinique" = "Martinique"
-                             ,"Mauritania" = "Mauritania"
-                             ,"Mexico" = "Mexico"
-                             ,"Moldova" = "Moldova"
-                             ,"Monaco" = "Monaco"
-                             ,"Mongolia" = "Mongolia"
-                             ,"Morocco" = "Morocco"
-                             ,"Namibia" = "Namibia"
-                             ,"Nepal" = "Nepal"
-                             ,"Netherlands" = "Netherlands"
-                             ,"New Zealand" = "New Zealand"
-                             ,"Nigeria" = "Nigeria"
-                             ,"North Macedonia" = "North Macedonia"
-                             ,"Norway" = "Norway"
-                             ,"Oman" = "Oman"
-                             ,"Pakistan" = "Pakistan"
-                             ,"Panama" = "Panama"
-                             ,"Paraguay" = "Paraguay"
-                             ,"Peru" = "Peru"
-                             ,"Philippines" = "Philippines"
-                             ,"Poland" = "Poland"
-                             ,"Portugal" = "Portugal"
-                             ,"Qatar" = "Qatar"
-                             #,"Reunion" = "Reunion"
-                             ,"Romania" = "Romania"
-                             ,"Russia" = "Russia"
-                             ,"Rwanda" = "Rwanda"
-                             ,"Saint Lucia" = "Saint Lucia"
-                             ,"Saint Vincent and the Grenadines" = "Saint Vincent and the Grenadines"
-                             ,"San Marino" = "San Marino"
-                             ,"Saudi Arabia" = "Saudi Arabia"
-                             ,"Senegal" = "Senegal"
-                             ,"Serbia" = "Serbia"
-                             ,"Seychelles" = "Seychelles"
-                             ,"Singapore" = "Singapore"
-                             ,"Slovakia" = "Slovakia"
-                             ,"Slovenia" = "Slovenia"
-                             ,"South Africa" = "South Africa"
-                             ,"Spain" = "Spain"
-                             ,"Sri Lanka" = "Sri Lanka"
-                             ,"Sudan" = "Sudan"
-                             ,"Suriname" = "Suriname"
-                             ,"Sweden" = "Sweden"
-                             ,"Switzerland" = "Switzerland"
-                             ,"Thailand" = "Thailand"
-                             ,"Togo" = "Togo"
-                             ,"Trinidad and Tobago" = "Trinidad and Tobago"
-                             ,"Tunisia" = "Tunisia"
-                             ,"Turkey" = "Turkey"
-                             ,"Ukraine" = "Ukraine"
-                             ,"United Arab Emirates" = "United Arab Emirates"
-                             ,"United Kingdom" = "United Kingdom"
-                             ,"Uruguay" = "Uruguay"
-                             ,"US" = "US"
-                             ,"Venezuela" = "Venezuela"
-                             ,"Vietnam" = "Vietnam"
-                             ),
+                           c(world,countries_list),
                            selected = "World"),
         checkboxInput("logscale", "Log Scale", value = FALSE),
         checkboxInput("rawchange", "First Derivative", value = FALSE),
@@ -222,7 +221,38 @@ ui <- fluidPage(
                                with unknown status will die, but this is unaccounted for in the numerator.Note if there are 0 deaths, an error will return under a log scale"),
                              
                              br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
-                             br(),br(),br(),br(),br(),br()))
+                             br(),br(),br(),br(),br(),br()),
+                    tabPanel("Overlay of Countries",
+                             selectInput("ChooseOption","Choose Option",
+                                         c("Confirmed",
+                                           "Deaths",
+                                           "Recovered"),"Confirmed"),
+                             fluidPage(
+                               fluidRow(
+                                 column(4, selectInput("Country1","Country1",
+                                                       countries_list,"US")
+                                        ),
+                                 column(8, sliderInput("Country1_Lag", 
+                                                       "Forward Shift for Country1",
+                                                       min=0, max=30, value=0, step = 1))
+                              
+                               ),
+                               fluidRow(
+                                 column(4, selectInput("Country2","Country2",
+                                                       countries_list,"Italy"
+                                 )),
+                                 column(8,sliderInput("Country2_Lag", 
+                                                      "Forward Shift for Country2",
+                                                      min=0, max=30, value=0, step = 1))
+                               )
+                             ),
+                    
+                             plotOutput("Overlay"),
+                             br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
+                             br(),br(),br(),br(),br(),br()
+                             
+                             )
+                    )
       )
    )
 )
@@ -843,7 +873,7 @@ server <- function(input, output) {
             Country_deaths <- filter(data_deaths, Country==input$countries)
             #Country_recovered <- filter(data_recovered, Country==input$countries)
             #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(Country_deaths$Deaths~Country_deaths$Date, 
+            plot(Country_deaths$Deaths~Country_deaths$Date,  
                  main = paste(input$countries,"Deaths"),
                  xlab= "Time", ylab = "Count", type = "o")
           }
@@ -1290,6 +1320,43 @@ server <- function(input, output) {
           }
         }
       }
+    }
+  })
+  
+  # -------OVERLAY-----
+  output$Overlay <- renderPlot({
+    if (input$ChooseOption == "Confirmed"){
+      Country_confirmed_1 <- filter(data_confirmed, Country==input$Country1)
+      Country_confirmed_2 <- filter(data_confirmed, Country==input$Country2)
+      plot(lag(Country_confirmed_1$Confirmed, input$Country1_Lag), col = "black", type = "o",
+           main = paste("Confirmed for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+           ylab = "Count", xlab = "Time")
+      points(lag(Country_confirmed_2$Confirmed, input$Country2_Lag), col = "red", type = "o")
+      
+      legend("topleft", legend=c(input$Country1,input$Country2),
+             col=c("black", "red"),lty=1:1, cex=0.8)
+    }
+    else if (input$ChooseOption == "Deaths"){
+      Country_deaths_1 <- filter(data_deaths, Country==input$Country1)
+      Country_deaths_2 <- filter(data_deaths, Country==input$Country2)
+      plot(lag(Country_deaths_1$Deaths, input$Country1_Lag), col = "black", type = "o",
+           main = paste("Deaths for",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+           ylab = "Count", xlab = "Time")
+      points(lag(Country_deaths_2$Deaths, input$Country2_Lag), col = "red", type = "o")
+      
+      legend("topleft", legend=c(input$Country1,input$Country2),
+             col=c("black", "red"),lty=1:1, cex=0.8)
+    }
+    else if (input$ChooseOption == "Recovered"){
+      Country_survived_1 <- filter(data_recovered, Country==input$Country1)
+      Country_survived_2 <- filter(data_recovered, Country==input$Country2)
+      plot(lag(Country_survived_1$Recovered, input$Country1_Lag), col = "black", type = "o",
+           main = paste("Recovered",input$Country1, "Shifted By", input$Country1_Lag, "and", input$Country2, "Shifted By",input$Country2_Lag ),
+           ylab = "Count", xlab = "Time")
+      points(lag(Country_survived_2$Recovered, input$Country2_Lag), col = "red", type = "o")
+      
+      legend("topleft", legend=c(input$Country1,input$Country2),
+             col=c("black", "red"),lty=1:1, cex=0.8)
     }
   })
 }
