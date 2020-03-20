@@ -561,7 +561,9 @@ server <- function(input, output) {
     else {
       
       if (input$logscale == TRUE) {
+        #start of rawchange
         if (input$rawchange == TRUE){
+          #start of perc change
           if (input$percChange==TRUE){
             Country_confirmed <- filter(data_confirmed, Country==input$countries)
             Country_deaths <- filter(data_deaths, Country==input$countries)
@@ -574,44 +576,47 @@ server <- function(input, output) {
             legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
                    col=c("red", "black", "green"),lty=1:1, cex=0.8)
           }
+          #end of perc change
           else{
-            if (input$percChange==TRUE){
-              Country_confirmed <- filter(data_confirmed, Country==input$countries)
-              Country_deaths <- filter(data_deaths, Country==input$countries)
-              Country_recovered <- filter(data_recovered, Country==input$countries)
-              plot(percChange(diff(log(Country_confirmed$Confirmed)))~Country_confirmed$Date[3:length(Country_deaths$Date)], col="red",
-                   main =  paste(input$countries,"Percentage Change of Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
-                   xlab= "Time", ylab = "Percentage", type = "o")
-              points(percChange(diff(log(Country_deaths$Deaths)))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
-              points(percChange(diff(log(Country_recovered$Recovered)))~Country_recovered$Date[3:length(Country_deaths$Date)], col="green", type = "o")
-              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+            Country_confirmed <- filter(data_confirmed, Country==input$countries)
+            Country_deaths <- filter(data_deaths, Country==input$countries)
+            Country_recovered <- filter(data_recovered, Country==input$countries)
+            plot(diff(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_deaths$Date)], col="red",
+                 main =  paste(input$countries,"Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+            points(diff(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_deaths$Date)], col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
                      col=c("red", "black", "green"),lty=1:1, cex=0.8)
-            }
-            else {
-              Country_confirmed <- filter(data_confirmed, Country==input$countries)
-              Country_deaths <- filter(data_deaths, Country==input$countries)
-              Country_recovered <- filter(data_recovered, Country==input$countries)
-              plot(diff(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_deaths$Date)], col="red",
-                   main =  paste(input$countries,"Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
-                   xlab= "Time", ylab = "Log Scale Count", type = "o")
-              points(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
-              points(diff(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_deaths$Date)], col="green", type = "o")
-              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
-            }
           }
         }
+        #end of raw change
         else {
-          Country_confirmed <- filter(data_confirmed, Country==input$countries)
-          Country_deaths <- filter(data_deaths, Country==input$countries)
-          Country_recovered <- filter(data_recovered, Country==input$countries)
-          plot(log(Country_confirmed$Confirmed)~Country_confirmed$Date, col="red",
-               main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Log Scale Count", type = "o")
-          points(log(Country_deaths$Deaths)~Country_deaths$Date, col="black", type = "o")
-          points(log(Country_recovered$Recovered)~Country_recovered$Date, col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          if (input$percChange==TRUE){
+            Country_confirmed <- filter(data_confirmed, Country==input$countries)
+            Country_deaths <- filter(data_deaths, Country==input$countries)
+            Country_recovered <- filter(data_recovered, Country==input$countries)
+            plot(percChange(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
+                 main =  paste(input$countries,"Percentage Change of Log Count Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(percChange(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+            points(percChange(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          else{
+            Country_confirmed <- filter(data_confirmed, Country==input$countries)
+            Country_deaths <- filter(data_deaths, Country==input$countries)
+            Country_recovered <- filter(data_recovered, Country==input$countries)
+            plot(log(Country_confirmed$Confirmed)~Country_confirmed$Date, col="red",
+                 main =  paste(input$countries,"Log Scale Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            points(log(Country_deaths$Deaths)~Country_deaths$Date, col="black", type = "o")
+            points(log(Country_recovered$Recovered)~Country_recovered$Date, col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          
         }
       }
       
