@@ -201,13 +201,13 @@ ui <- fluidPage(
                              textOutput("DDR"),
                              h2("Limitations"),
                              p("Dividing Deaths/(Deaths + Recovered) is preferred
-                               to dividing Deaths/Confirmed. This is because 
+                               to dividing Deaths/Confirmed to estimate mortality. This is because 
                                a certain number of those with an unknown status will 
                                die. However, as different countries have
                                different recovery rates, for countries that have
                                been more recently afflicted, this
-                               overestimates the mortality rate. However, on a global scale, this is 
-                               more accurate than Deaths/Confirmed. Note if there are 0 deaths, an error will return under a log scale"),
+                               overestimates the mortality rate. On the other hand, on a global scale, this produces 
+                               more accurate estimates of mortality than Deaths/Confirmed. Note if there are 0 deaths, an error will return under a log scale"),
                              
                              br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),br(),
                              br(),br(),br(),br(),br(),br()),
@@ -336,7 +336,7 @@ server <- function(input, output) {
             #tail(worldwide_deaths,1),
             worldwide_deaths[length(worldwide_deaths)],
             ", and the total number recovered is", 
-            worldwide_recovered[length(worldwide_recovered)])
+            worldwide_recovered[length(worldwide_recovered)],".")
     }
     else if (input$countries == "World without China"){
       paste("As of", dates[length(dates)],",",
@@ -347,7 +347,7 @@ server <- function(input, output) {
             #tail(worldwide_deaths_noChina,1),
             worldwide_deaths_noChina[length(worldwide_deaths_noChina)],
             ", and the total number recovered is", 
-            worldwide_recovered_noChina[length(worldwide_recovered_noChina)])
+            worldwide_recovered_noChina[length(worldwide_recovered_noChina)],".")
     }
     else {
       Country_confirmed <- filter(data_confirmed, Country==input$countries)
@@ -374,7 +374,7 @@ server <- function(input, output) {
           if (input$percChange == TRUE){
             plot(percChange(diff(log(worldwide_confirmed)))~as.Date(colnames(confirmed[,7:length(confirmed)]),format = "%m/%d/%y"), col="red",
                  main =  paste(input$countries,"Percentage Change of Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Percentage of Log Scale Count", type = "o")
+                 xlab= "Time", ylab = "Percentage", type = "o")
             points(percChange(diff(log(worldwide_deaths)))~as.Date(colnames(deaths[,7:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
             points(percChange(diff(log(worldwide_recovered)))~as.Date(colnames(recovered[,7:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
             legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
@@ -407,7 +407,7 @@ server <- function(input, output) {
           else{
             
             plot(log(worldwide_confirmed)~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
-                 main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
+                 main =  paste(input$countries,"Log Scale Confirmed Cases, Deaths, and Recovered"),
                  xlab= "Time", ylab = "Log Scale Count", type = "o")
             points(log(worldwide_deaths)~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
             points(log(worldwide_recovered)~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
@@ -502,7 +502,7 @@ server <- function(input, output) {
           #end of perc change
           else{
             plot(log(worldwide_confirmed_noChina)~as.Date(colnames(confirmed[,5:length(confirmed)]),format = "%m/%d/%y"), col="red",
-                 main =  paste(input$countries,"Confirmed Cases, Deaths, and Recovered"),
+                 main =  paste(input$countries,"Log Scale Confirmed Cases, Deaths, and Recovered"),
                  xlab= "Time", ylab = "Log Scale Count", type = "o")
             points(log(worldwide_deaths_noChina)~as.Date(colnames(deaths[,5:length(deaths)]),format = "%m/%d/%y"), col="black", type = "o")
             points(log(worldwide_recovered_noChina)~as.Date(colnames(recovered[,5:length(recovered)]),format = "%m/%d/%y"), col="green", type = "o")
@@ -622,16 +622,30 @@ server <- function(input, output) {
       
       else {
         if (input$rawchange == TRUE){
-          Country_confirmed <- filter(data_confirmed, Country==input$countries)
-          Country_deaths <- filter(data_deaths, Country==input$countries)
-          Country_recovered <- filter(data_recovered, Country==input$countries)
-          plot(diff(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
-               main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
-               xlab= "Time", ylab = "Count", type = "o")
-          points(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
-          points(diff(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
-          legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                 col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          if (input$percChange == TRUE){
+            Country_confirmed <- filter(data_confirmed, Country==input$countries)
+            Country_deaths <- filter(data_deaths, Country==input$countries)
+            Country_recovered <- filter(data_recovered, Country==input$countries)
+            plot(percChange(diff(Country_confirmed$Confirmed))~Country_confirmed$Date[3:length(Country_confirmed$Date)], col="red",
+                 main =  paste(input$countries,"Percentage Change of Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Percentage", type = "o")
+            points(percChange(diff(Country_deaths$Deaths))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
+            points(percChange(diff(Country_recovered$Recovered))~Country_recovered$Date[3:length(Country_recovered$Date)], col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
+          else {
+            Country_confirmed <- filter(data_confirmed, Country==input$countries)
+            Country_deaths <- filter(data_deaths, Country==input$countries)
+            Country_recovered <- filter(data_recovered, Country==input$countries)
+            plot(diff(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
+                 main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                 xlab= "Time", ylab = "Count", type = "o")
+            points(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+            points(diff(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
+            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          }
         }
       
         else{
@@ -1132,7 +1146,7 @@ server <- function(input, output) {
       Country_deaths <- filter(data_deaths, Country==input$countries)
       proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
       paste("As of", dates[length(dates)], ",",
-            "the Dead/Dead+Recovered rate in ", input$countries, "is",
+            "the Dead/Confirmed rate in ", input$countries, "is",
             round(proportion[length(proportion)],2), "%")
     }
     
