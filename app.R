@@ -167,7 +167,9 @@ ui <- fluidPage(
    p("Data is from Johns Hopkins CSSE (https://github.com/CSSEGISandData/COVID-19)
      which is scraped from various sources and updated once daily. 
      This app is still in development. If you would like to contribute, please do! The
-     repository is at https://github.com/joshp112358/COVID19-VIZ ."),
+     repository is at https://github.com/joshp112358/COVID19-VIZ . Note that
+     currently Johns Hopkins is only reporting recovered rates at the nation level,
+     not at the state level."),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -175,6 +177,7 @@ ui <- fluidPage(
         selectInput("countries", "Countries",
                            c(world,countries_list),
                            selected = "World"),
+        uiOutput("ui1"),
         checkboxInput("logscale", "Log Scale", value = FALSE),
         checkboxInput("rawchange", "First Derivative", value = FALSE),
         checkboxInput("percChange", "Percentage Change", value = FALSE)),
@@ -319,11 +322,41 @@ server <- function(input, output) {
   percChange <- function(df){
     y<-numeric()
     for(i in 2:length(df)){
-      y<-append(y,(df[i]-df[i-1])/df[i-1] * 100)
+      if (is.na(df[i])&is.na(df[i-1])){
+        y<-append(y,NA)
+      }
+      else if (df[i]==0&is.na(df[i-1])){
+        y<-append(y,NA)
+      }
+      else if (df[i]==0&df[i-1]==0){
+        y<-append(y,0)
+      }
+      else{
+        y<-append(y,(df[i]-df[i-1])/df[i-1] * 100)
+      }
     }
     return(y)
   }
-
+  ## UI ----
+  output$ui1 <- renderUI({
+    if ((input$countries != "World")&(input$countries != "World without China")){
+      country <- filter(confirmed, `Country/Region`==input$countries)
+      states <- country$`Province/State`[!country$`Province/State`=="Diamond Princess"&!country$`Province/State`=="Grand Princess"]
+      if (length(states)==1){
+        selectInput("State", 
+                    "Province/State",
+                    c("All"),
+                    "All")
+      }
+      else {
+        selectInput("State", 
+                    "Province/State",
+                    c("All",states),
+                    "All")
+      }
+    }
+  })
+  ##-------
 ## CODE -------
   
   output$CSD <- renderText({ 
@@ -336,7 +369,7 @@ server <- function(input, output) {
             #tail(worldwide_deaths,1),
             worldwide_deaths[length(worldwide_deaths)],
             ", and the total number recovered is", 
-            worldwide_recovered[length(worldwide_recovered)],".")
+            worldwide_recovered[length(worldwide_recovered)])
     }
     else if (input$countries == "World without China"){
       paste("As of", dates[length(dates)],",",
@@ -347,19 +380,34 @@ server <- function(input, output) {
             #tail(worldwide_deaths_noChina,1),
             worldwide_deaths_noChina[length(worldwide_deaths_noChina)],
             ", and the total number recovered is", 
-            worldwide_recovered_noChina[length(worldwide_recovered_noChina)],".")
+            worldwide_recovered_noChina[length(worldwide_recovered_noChina)])
     }
     else {
-      Country_confirmed <- filter(data_confirmed, Country==input$countries)
-      Country_deaths <- filter(data_deaths, Country==input$countries)
-      Country_recovered <- filter(data_recovered, Country==input$countries)
-      paste("As of", dates[length(dates)], ",",
-            "the confirmed number of cases", "in", input$countries, "is", 
-            tail(Country_confirmed$Confirmed,1),
-            ", the total number of deaths is", 
-            tail(Country_deaths$Deaths,1),
-            ", and the total number recovered is", 
-            tail(Country_recovered$Recovered,1),".")
+      if (input$State == "All"){
+        Country_confirmed <- filter(data_confirmed, Country==input$countries)
+        Country_deaths <- filter(data_deaths, Country==input$countries)
+        Country_recovered <- filter(data_recovered, Country==input$countries)
+        paste("As of", dates[length(dates)], ",",
+              "the confirmed number of cases", "in", input$countries, "is", 
+              tail(Country_confirmed$Confirmed,1),
+              ", the total number of deaths is", 
+              tail(Country_deaths$Deaths,1),
+              ", and the total number recovered is", 
+              tail(Country_recovered$Recovered,1),".")
+      }
+      else{
+        Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+        Country_deaths <- filter(deaths, `Province/State`==input$State)
+        Country_recovered <- filter(recovered, `Province/State`==input$State)
+        date <- colnames(Country_confirmed)[length(colnames(Country_confirmed))]
+        paste("As of", date, ",",
+              "the confirmed number of cases", "in", input$State, "is", 
+              tail(t(Country_confirmed),1),
+              ", the total number of deaths is", 
+              tail(t(Country_deaths),1),
+              ", and the total number recovered is", 
+              tail(t(Country_recovered),1),".")
+      }
     }
   })
   
@@ -559,122 +607,289 @@ server <- function(input, output) {
     
     #Start of other countries
     else {
-      
-      if (input$logscale == TRUE) {
-        #start of rawchange
-        if (input$rawchange == TRUE){
-          #start of perc change
-          if (input$percChange==TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(percChange(diff(log(Country_confirmed$Confirmed)))~Country_confirmed$Date[3:length(Country_deaths$Date)], col="red",
-                 main =  paste(input$countries,"Percentage Change of Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-            points(percChange(diff(log(Country_deaths$Deaths)))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
-            points(percChange(diff(log(Country_recovered$Recovered)))~Country_recovered$Date[3:length(Country_deaths$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
-          }
-          #end of perc change
-          else{
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(diff(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_deaths$Date)], col="red",
-                 main =  paste(input$countries,"Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Log Scale Count", type = "o")
-            points(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
-            points(diff(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_deaths$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+      if (input$State == "All"){
+        if (input$logscale == TRUE) {
+          #start of rawchange
+          if (input$rawchange == TRUE){
+            #start of perc change
+            if (input$percChange==TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(percChange(diff(log(Country_confirmed$Confirmed)))~Country_confirmed$Date[3:length(Country_deaths$Date)], col="red",
+                   main =  paste(input$countries,"Percentage Change of Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(diff(log(Country_deaths$Deaths)))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
+              points(percChange(diff(log(Country_recovered$Recovered)))~Country_recovered$Date[3:length(Country_deaths$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
                      col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            #end of perc change
+            else{
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(diff(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_deaths$Date)], col="red",
+                   main =  paste(input$countries,"Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+              points(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+              points(diff(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_deaths$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+          }
+          #end of raw change
+          else {
+            if (input$percChange==TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(percChange(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
+                   main =  paste(input$countries,"Percentage Change of Log Count Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+              points(percChange(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+              points(percChange(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            else{
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(log(Country_confirmed$Confirmed)~Country_confirmed$Date, col="red",
+                   main =  paste(input$countries,"Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+              points(log(Country_deaths$Deaths)~Country_deaths$Date, col="black", type = "o")
+              points(log(Country_recovered$Recovered)~Country_recovered$Date, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            
           }
         }
-        #end of raw change
+        
         else {
-          if (input$percChange==TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(percChange(log(Country_confirmed$Confirmed))~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
-                 main =  paste(input$countries,"Percentage Change of Log Count Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Log Scale Count", type = "o")
-            points(percChange(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
-            points(percChange(log(Country_recovered$Recovered))~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
-          }
-          else{
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(log(Country_confirmed$Confirmed)~Country_confirmed$Date, col="red",
-                 main =  paste(input$countries,"Log Scale Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Log Scale Count", type = "o")
-            points(log(Country_deaths$Deaths)~Country_deaths$Date, col="black", type = "o")
-            points(log(Country_recovered$Recovered)~Country_recovered$Date, col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(percChange(diff(Country_confirmed$Confirmed))~Country_confirmed$Date[3:length(Country_confirmed$Date)], col="red",
+                   main =  paste(input$countries,"Percentage Change of Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(diff(Country_deaths$Deaths))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
+              points(percChange(diff(Country_recovered$Recovered))~Country_recovered$Date[3:length(Country_recovered$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(diff(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
+                   main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Count", type = "o")
+              points(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
+              points(diff(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
           }
           
+          else{
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(percChange(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
+                   main =  paste(input$countries," Percentage Change in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_confirmed$Date)], col="black", type = "o")
+              points(percChange(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_confirmed$Date)], col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              plot(Country_confirmed$Confirmed~Country_confirmed$Date, col="red",
+                   main =  paste(input$countries," Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Count", type = "o")
+              points(Country_deaths$Deaths~Country_deaths$Date, col="black", type = "o")
+              points(Country_recovered$Recovered~Country_recovered$Date, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+          }
         }
       }
-      
+      #Start of state bool
       else {
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(percChange(diff(Country_confirmed$Confirmed))~Country_confirmed$Date[3:length(Country_confirmed$Date)], col="red",
-                 main =  paste(input$countries,"Percentage Change of Daily Count in Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-            points(percChange(diff(Country_deaths$Deaths))~Country_deaths$Date[3:length(Country_deaths$Date)], col="black", type = "o")
-            points(percChange(diff(Country_recovered$Recovered))~Country_recovered$Date[3:length(Country_recovered$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+        if (input$logscale == TRUE) {
+          #start of rawchange
+          if (input$rawchange == TRUE){
+            #start of perc change
+            if (input$percChange==TRUE){
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d <- as.Date(colnames(Country_confirmed[7:length(Country_confirmed)]),
+                           format = "%m/%d/%y")
+              
+              plot(percChange(diff(log(t(Country_confirmed[5:length(Country_confirmed)]))))~d, col="red",
+                   main =  paste(input$State,"Percentage Change of Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(diff(log(t(Country_deaths[5:length(Country_recovered)]))))~d, col="black", type = "o")
+              points(percChange(diff(log(t(Country_recovered[5:length(Country_recovered)]))))~d, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            #end of perc change
+            else{
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d <- as.Date(colnames(Country_confirmed[6:length(Country_confirmed)]),
+                           format = "%m/%d/%y")
+              
+              plot(diff(log(t(Country_confirmed[5:length(Country_confirmed)])))~d, col="red",
+                   main =  paste(input$State,"Daily Count of Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+              points(diff(log(t(Country_deaths[5:length(Country_recovered)])))~d, col="black", type = "o")
+              points(diff(log(t(Country_recovered[5:length(Country_recovered)])))~d, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
           }
+          #end of raw change
           else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(diff(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
-                 main =  paste(input$countries,"Daily Count in Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Count", type = "o")
-            points(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], col="black", type = "o")
-            points(diff(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_recovered$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            if (input$percChange==TRUE){
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              
+              d <- as.Date(colnames(Country_confirmed[6:length(Country_confirmed)]),
+                           format = "%m/%d/%y")
+              
+              plot(percChange(log(t(Country_confirmed[5:length(Country_confirmed)])))~d, 
+                   col="red",
+                   main =  paste(input$State,"Percentage Change of Log Count Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(log(t(Country_deaths[5:length(Country_deaths)])))~d, 
+                     col="black", 
+                     type = "o")
+              points(percChange(log(t(Country_recovered[5:length(Country_recovered)])))~d, 
+                     col="green", 
+                     type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            else{
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_confirmed[5:length(Country_confirmed)])
+                          ,format = "%m/%d/%y")
+              
+              plot(log(t(Country_confirmed[5:length(Country_confirmed)]))~d,
+                   col="red",
+                   main =  paste(input$State,"Log Scale Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+              points(log(t(Country_deaths[5:length(Country_deaths)]))~d, 
+                     col="black", type = "o")
+              points(log(t(Country_recovered[5:length(Country_recovered)]))~d,
+                     col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            
           }
         }
-      
-        else{
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(percChange(Country_confirmed$Confirmed)~Country_confirmed$Date[2:length(Country_confirmed$Date)], col="red",
-                 main =  paste(input$countries," Percentage Change in Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-            points(percChange(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_confirmed$Date)], col="black", type = "o")
-            points(percChange(Country_recovered$Recovered)~Country_recovered$Date[2:length(Country_confirmed$Date)], col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+        
+        else {
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_confirmed[7:length(Country_confirmed)])
+                          ,format = "%m/%d/%y")
+              
+              plot(percChange(diff(t(Country_confirmed[5:length(Country_confirmed)])))~d, 
+                   col="red",
+                   main =  paste(input$State,
+                                 "Percentage Change of Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+              points(percChange(diff(t(Country_deaths[5:length(Country_deaths)])))~d, col="black", type = "o")
+              points(percChange(diff(t(Country_recovered[5:length(Country_recovered)])))~d, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+              
+          
+            }
+            else {
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_confirmed[6:length(Country_confirmed)])
+                          ,format = "%m/%d/%y")
+              
+              plot(diff(t(Country_confirmed[5:length(Country_confirmed)]))~d, 
+                   col="red",
+                   main =  paste(input$State,
+                                 "Daily Count in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Count", type = "o")
+              points(diff(t(Country_deaths[5:length(Country_deaths)]))~d, col="black", type = "o")
+              points(diff(t(Country_recovered[5:length(Country_recovered)]))~d, col="green", type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
           }
-          else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            plot(Country_confirmed$Confirmed~Country_confirmed$Date, col="red",
-                 main =  paste(input$countries," Confirmed Cases, Deaths, and Recovered"),
-                 xlab= "Time", ylab = "Count", type = "o")
-            points(Country_deaths$Deaths~Country_deaths$Date, col="black", type = "o")
-            points(Country_recovered$Recovered~Country_recovered$Date, col="green", type = "o")
-            legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
-                   col=c("red", "black", "green"),lty=1:1, cex=0.8)
+          
+          else{
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_confirmed[6:length(Country_confirmed)]),format = "%m/%d/%y")
+              
+              plot(percChange(t(Country_confirmed[5:length(Country_confirmed)]))~d, col="red",
+                   main =  paste(input$State," Percentage Change in Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", 
+                   ylab = "Percentage", 
+                   type = "o")
+              points(percChange(t(Country_deaths[5:length(Country_confirmed)]))~d, 
+                     col="black", 
+                     type = "o")
+              points(percChange(t(Country_recovered[5:length(Country_confirmed)]))~d, 
+                     col="green", 
+                     type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
+            else {
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_confirmed[5:length(Country_confirmed)]),format = "%m/%d/%y")
+              plot(t(Country_confirmed[5:length(Country_confirmed)])~d, 
+                   col="red",
+                   main =  paste(input$State," Confirmed Cases, Deaths, and Recovered"),
+                   xlab= "Time", ylab = "Count", type = "o")
+              points(t(Country_deaths[5:length(Country_deaths)])~d, 
+                     col="black", 
+                     type = "o")
+              points(t(Country_recovered[5:length(Country_recovered)])~d, 
+                     col="green", 
+                     type = "o")
+              legend("topleft", legend=c("Confirmed Cases", "Deaths", "Recovered "),
+                     col=c("red", "black", "green"),lty=1:1, cex=0.8)
+            }
           }
         }
       }
+      
     }
   })
   
@@ -692,10 +907,21 @@ server <- function(input, output) {
             tail(worldwide_deaths_noChina[length(worldwide_deaths_noChina)]))
     }
     else {
-      Country_deaths <- filter(data_deaths, Country==input$countries)
-      paste("As of",dates[length(dates)], 
-            "the total number of deaths in",input$countries ,"is",
-            tail(Country_deaths$Deaths[length(Country_deaths$Deaths)]))
+      if (input$State!= "All"){
+        Country_deaths <- filter(deaths, `Province/State`==input$State)
+        
+        date <- colnames(Country_deaths)[length(colnames(Country_deaths))]
+        
+        paste("As of",date[length(date)], 
+              "the total number of deaths in",input$State ,"is",
+              tail(Country_deaths[length(Country_deaths)]))
+      }
+      else {
+        Country_deaths <- filter(data_deaths, Country==input$countries)
+        paste("As of",dates[length(dates)], 
+              "the total number of deaths in",input$countries ,"is",
+              tail(Country_deaths$Deaths[length(Country_deaths$Deaths)]))
+      }
     }
   })
   
@@ -812,89 +1038,166 @@ server <- function(input, output) {
       }
     }
     
+    #start of other countries
+    
     else {
-      if (input$logscale == TRUE){
-        if (input$rawchange == TRUE){
-          if (input$percChange==TRUE){
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(diff(log(Country_deaths$Deaths)))~Country_deaths$Date[3:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change of Daily Count of Log Scale Deaths"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-          }
-          else {
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Daily Count of Log Scale Deaths"),
-                 xlab= "Time", ylab = "Log Scale Count", type = "o")
-          }
-        }
-        else{
-          if (input$percChange ==TRUE){
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change of Log Count Deaths"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+      if (input$State == "All"){
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange==TRUE){
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(percChange(diff(log(Country_deaths$Deaths)))~Country_deaths$Date[3:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change of Daily Count of Log Scale Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(diff(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Daily Count of Log Scale Deaths"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+            }
           }
           else{
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(log(Country_deaths$Deaths)~Country_deaths$Date, 
-                 main = paste(input$countries,"Log Count Deaths"),
-                 xlab= "Time", ylab = "Log Scale Count", type = "o")
+            if (input$percChange ==TRUE){
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(percChange(log(Country_deaths$Deaths))~Country_deaths$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change of Log Count Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else{
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(log(Country_deaths$Deaths)~Country_deaths$Date, 
+                   main = paste(input$countries,"Log Count Deaths"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+            }
           }
-        }
-        
-      }
-      else {
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(diff(Country_deaths$Deaths))~Country_deaths$Date[3:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change in Daily Count Deaths"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-          }
-          else{
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Daily Count Deaths"),
-                 xlab= "Time", ylab = "Count", type = "o")
-          }
+          
         }
         else {
-          if (input$percChange == TRUE){
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(percChange(diff(Country_deaths$Deaths))~Country_deaths$Date[3:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change in Daily Count Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else{
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              plot(diff(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Daily Count Deaths"),
+                   xlab= "Time", ylab = "Count", type = "o")
+            }
+          }
+          else {
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              
+              plot(percChange(Country_deaths$Deaths)~Country_deaths$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change in Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else{
+              
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+            
+              plot(Country_deaths$Deaths~Country_deaths$Date,  
+                   main = paste(input$countries,"Deaths"),
+                   xlab= "Time", ylab = "Count", type = "o")
+            }
+          }
+        }
+      }
+      
+      #Start of States
+      else {
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange==TRUE){
+              
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[7:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              
+              plot(percChange(diff(log(t(Country_deaths[5:length(Country_deaths)]))))~d, 
+                   main = paste(input$State,"Percentage Change of Daily Count of Log Scale Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[6:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(diff(log(t(Country_deaths[5:length(Country_deaths)])))~d, 
+                   main = paste(input$State,"Daily Count of Log Scale Deaths"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+            }
           }
           else{
-            #Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            #Country_recovered <- filter(data_recovered, Country==input$countries)
-            #Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(Country_deaths$Deaths~Country_deaths$Date,  
-                 main = paste(input$countries,"Deaths"),
-                 xlab= "Time", ylab = "Count", type = "o")
+            if (input$percChange ==TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[6:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(log(t(Country_deaths[5:length(Country_deaths)])))~d, 
+                   main = paste(input$State,"Percentage Change of Log Count Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else{
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[5:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(log(t(Country_deaths[5:length(Country_deaths)]))~d, 
+                   main = paste(input$State,"Log Count Deaths"),
+                   xlab= "Time", ylab = "Log Scale Count", type = "o")
+            }
+          }
+          
+        }
+        else {
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              # perc Change Diff
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[7:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(diff(t(Country_deaths[5:length(Country_deaths)])))~d, 
+                   main = paste(input$State,"Percentage Change in Daily Count Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else{
+              # first derivative
+              
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[6:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(diff(t(Country_deaths[5:length(Country_deaths)]))~d, 
+                   main = paste(input$State,"Daily Count Deaths"),
+                   xlab= "Time", ylab = "Count", type = "o")
+            }
+          }
+          else {
+            if (input$percChange == TRUE){
+              
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[6:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(t(Country_deaths[5:length(Country_deaths)]))~d,  
+                   main = paste(input$State,"Percentage Change in Deaths"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+  
+            }
+            
+            ## HERE
+            ##HERE 
+            else{
+              #plot(1:10)
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              d<- as.Date(colnames(Country_deaths[5:length(Country_deaths)]),format = "%m/%d/%y")
+              
+              
+              plot(t(Country_deaths[5:length(Country_deaths)])~d,  
+                   main = paste(input$State,"Deaths"),
+                   xlab= "Time", ylab = "Count", type = "o")
+            }
           }
         }
       }
@@ -917,12 +1220,26 @@ server <- function(input, output) {
     }
     
     else {
-      Country_deaths <- filter(data_deaths, Country==input$countries)
-      Country_recovered <- filter(data_recovered, Country==input$countries)
-      Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-      paste("As of", dates[length(dates)], ",",
-            "the Dead/(Dead+Recovered) Rate in", input$countries, "is",
-            round(Country_proportion[length(Country_proportion)],2), "%")
+      if (input$State == "All"){
+        Country_deaths <- filter(data_deaths, Country==input$countries)
+        Country_recovered <- filter(data_recovered, Country==input$countries)
+        Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+        paste("As of", dates[length(dates)], ",",
+              "the Dead/(Dead+Recovered) Rate in", input$countries, "is",
+              round(Country_proportion[length(Country_proportion)],2), "%")
+      }
+      else{
+        Country_deaths <- filter(deaths, `Province/State`==input$State)
+        Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+        Country_recovered <- filter(recovered, `Province/State`==input$State)
+        Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+        Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+        
+        paste("As of", dates[length(dates)], ",",
+              "the Dead/(Dead+Recovered) Rate in", input$State, "is",
+              round(tail(Country_proportion,1),2), "%")
+      }
+      
     }
   )
   
@@ -1039,89 +1356,208 @@ server <- function(input, output) {
         }
       }
     }
-            
+    #Start of State
     else {
-      if (input$logscale == TRUE){
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(diff(log(Country_proportion)))~Country_recovered$Date[3:length(Country_recovered$Date)], 
-                 main = paste(input$countries,"Percentage Change of Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+      if (input$State == "All"){
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(percChange(diff(log(Country_proportion)))~Country_recovered$Date[3:length(Country_recovered$Date)], 
+                   main = paste(input$countries,"Percentage Change of Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else{
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(diff(log(Country_proportion))~Country_recovered$Date[2:length(Country_recovered$Date)], 
+                   main = paste(input$countries,"Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
           }
           else{
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(diff(log(Country_proportion))~Country_recovered$Date[2:length(Country_recovered$Date)], 
-                 main = paste(input$countries,"Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-        }
-        else{
-          if (input$percChange==TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(log(Country_proportion))~Country_recovered$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change of Log Scale Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-          else{
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(log(Country_proportion)~Country_recovered$Date, 
-                 main = paste(input$countries,"Log Scale Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-        }
-      }
-      else {
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(diff(Country_proportion))~Country_recovered$Date[3:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change of Change Per Day of Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-          }
-          else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(diff(Country_proportion)~Country_recovered$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Change per Day of Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+            if (input$percChange==TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(percChange(log(Country_proportion))~Country_recovered$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else{
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(log(Country_proportion)~Country_recovered$Date, 
+                   main = paste(input$countries,"Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
           }
         }
         else {
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(percChange(Country_proportion)~Country_recovered$Date[2:length(Country_deaths$Date)], 
-                 main = paste(input$countries,"Percentage Change of Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(percChange(diff(Country_proportion))~Country_recovered$Date[3:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change of Change Per Day of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(diff(Country_proportion)~Country_recovered$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Change per Day of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
           }
           else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            Country_recovered <- filter(data_recovered, Country==input$countries)
-            Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
-            plot(Country_proportion~Country_recovered$Date, 
-                 main = paste(input$countries,"Deaths/(Deaths+Recovered)"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              
+              plot(percChange(Country_proportion)~Country_recovered$Date[2:length(Country_deaths$Date)], 
+                   main = paste(input$countries,"Percentage Change of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              Country_recovered <- filter(data_recovered, Country==input$countries)
+              Country_proportion <- Country_deaths$Deaths/(Country_deaths$Deaths+Country_recovered$Recovered)*100
+              plot(Country_proportion~Country_recovered$Date, 
+                   main = paste(input$countries,"Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+          }
+        }
+      }
+      #Start of other countries
+      else {
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[7:length(recovered)]),format = "%m/%d/%y")
+              
+              
+              plot(percChange(diff(log(Country_proportion)))~d, 
+                   main = paste(input$State,"Percentage Change of Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else{
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[6:length(recovered)]),format = "%m/%d/%y")
+              
+              plot(diff(log(Country_proportion))~d, 
+                   main = paste(input$State,"Change per Day of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+          }
+          else{
+            if (input$percChange==TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[6:length(recovered)]),format = "%m/%d/%y")
+              
+              
+              plot(percChange(log(Country_proportion))~d, 
+                   main = paste(input$State,"Percentage Change of Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else{
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[5:length(recovered)]),format = "%m/%d/%y")
+              
+              plot(log(Country_proportion)~d, 
+                   main = paste(input$State,"Log Scale Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+          }
+        }
+        else {
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[7:length(recovered)]),format = "%m/%d/%y")
+              
+              plot(percChange(diff(Country_proportion))~d, 
+                   main = paste(input$State,"Percentage Change of Change Per Day of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[6:length(recovered)]),format = "%m/%d/%y")
+              
+              
+              plot(diff(Country_proportion)~d, 
+                   main = paste(input$State,"Change per Day of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+          }
+          else {
+            if (input$percChange == TRUE){
+              
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              
+              d <- as.Date(colnames(recovered[6:length(recovered)]),format = "%m/%d/%y")
+              
+              plot(percChange(Country_proportion)~d, 
+                   main = paste(input$State ,"Percentage Change of Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_recovered <- filter(recovered, `Province/State`==input$State)
+              Country_recovered <- t(Country_recovered[5:length(Country_recovered)])
+              Country_proportion <- Country_deaths/(Country_deaths+Country_recovered)*100
+              d <- as.Date(colnames(recovered[5:length(recovered)]),format = "%m/%d/%y")
+
+              plot(Country_proportion~d, 
+                   main = paste(input$State,"Deaths/(Deaths+Recovered)"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
           }
         }
       }
@@ -1142,12 +1578,27 @@ server <- function(input, output) {
             round(WW_death_over_confirmed_noChina[length(WW_death_over_confirmed_noChina)],2), "%")
     }
     else {
-      Country_confirmed <- filter(data_confirmed, Country==input$countries)
-      Country_deaths <- filter(data_deaths, Country==input$countries)
-      proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-      paste("As of", dates[length(dates)], ",",
-            "the Dead/Confirmed rate in ", input$countries, "is",
-            round(proportion[length(proportion)],2), "%")
+      if (input$State == "All"){
+        Country_confirmed <- filter(data_confirmed, Country==input$countries)
+        Country_deaths <- filter(data_deaths, Country==input$countries)
+        proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+        paste("As of", dates[length(dates)], ",",
+              "the Dead/Confirmed rate in ", input$countries, "is",
+              round(proportion[length(proportion)],2), "%")
+      }
+      else{
+        Country_deaths <- filter(deaths, `Province/State`==input$State)
+        Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+        Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+        Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+        Country_proportion <- Country_deaths/Country_confirmed*100
+        d <- as.Date(colnames(deaths[5:length(deaths)]),format = "%m/%d/%y")
+        
+        
+        paste("As of", tail(d,1), ",",
+              "the Dead/Confirmed rate in ", input$State, "is",
+              round(Country_proportion[length(Country_proportion)],2), "%")
+      }
     }
     
   )
@@ -1263,86 +1714,201 @@ server <- function(input, output) {
       }
     }
     
+    # Start of new countries 
     else {
-      if (input$logscale == TRUE){
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(percChange(diff(log(proportion)))~Country_confirmed$Date[3:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Percentage Change of Change per Day of Log Scale Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+      if (input$State == "All"){
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(percChange(diff(log(proportion)))~Country_confirmed$Date[3:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Percentage Change of Change per Day of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(diff(log(proportion))~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Change per Day of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
           }
           else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(diff(log(proportion))~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Change per Day of Log Scale Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-        }
-        else {
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(percChange(log(proportion))~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Percentage Change of Log Scale Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-          else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(log(proportion)~Country_confirmed$Date, 
-                 main =  paste(input$countries,"Log Scale Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Log Scale Percentage", type = "o")
-          }
-        }
-      }
-      else{
-        if (input$rawchange == TRUE){
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(percChange(diff(proportion))~Country_confirmed$Date[3:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Percentage Change of Change per Day Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
-          }
-          else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(diff(proportion)~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Change per Day Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(percChange(log(proportion))~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Percentage Change of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(log(proportion)~Country_confirmed$Date, 
+                   main =  paste(input$countries,"Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
           }
         }
         else{
-          if (input$percChange == TRUE){
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(percChange(proportion)~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
-                 main =  paste(input$countries,"Percentage Change of Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(percChange(diff(proportion))~Country_confirmed$Date[3:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Percentage Change of Change per Day Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(diff(proportion)~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Change per Day Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+          }
+          else{
+            if (input$percChange == TRUE){
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(percChange(proportion)~Country_confirmed$Date[2:length(Country_confirmed$Date)], 
+                   main =  paste(input$countries,"Percentage Change of Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_confirmed <- filter(data_confirmed, Country==input$countries)
+              Country_deaths <- filter(data_deaths, Country==input$countries)
+              proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
+              plot(proportion~Country_confirmed$Date, 
+                   main =  paste(input$countries,"Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+          }
+        }
+      }
+      #start of state
+      else {
+        if (input$logscale == TRUE){
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[7:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(diff(log(proportion)))~d, 
+                   main =  paste(input$State,"Percentage Change of Change per Day of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[6:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(diff(log(proportion))~d, 
+                   main =  paste(input$State,"Change per Day of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
           }
           else {
-            Country_confirmed <- filter(data_confirmed, Country==input$countries)
-            Country_deaths <- filter(data_deaths, Country==input$countries)
-            proportion <- 100*Country_deaths$Deaths/Country_confirmed$Confirmed
-            plot(proportion~Country_confirmed$Date, 
-                 main =  paste(input$countries,"Deaths/Confirmed"),
-                 xlab= "Time", ylab = "Percentage", type = "o")
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[6:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(log(proportion))~d, 
+                   main =  paste(input$State,"Percentage Change of Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[5:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(log(proportion)~d, 
+                   main =  paste(input$State,"Log Scale Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Log Scale Percentage", type = "o")
+            }
+          }
+        }
+        else{
+          if (input$rawchange == TRUE){
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[7:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(diff(proportion))~d, 
+                   main =  paste(input$State,"Percentage Change of Change per Day Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[6:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(diff(proportion)~d, 
+                   main =  paste(input$State,"Change per Day Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+          }
+          else{
+            if (input$percChange == TRUE){
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[6:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(percChange(proportion)~d, 
+                   main =  paste(input$State,"Percentage Change of Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
+            else {
+              Country_deaths <- filter(deaths, `Province/State`==input$State)
+              Country_deaths <- t(Country_deaths[5:length(Country_deaths)])
+              Country_confirmed <- filter(confirmed, `Province/State`==input$State)
+              Country_confirmed <- t(Country_confirmed[5:length(Country_confirmed)])
+              proportion <- Country_deaths/Country_confirmed*100
+              d <- as.Date(colnames(deaths[5:length(deaths)]),format = "%m/%d/%y")
+              
+              plot(proportion~d, 
+                   main =  paste(input$State,"Deaths/Confirmed"),
+                   xlab= "Time", ylab = "Percentage", type = "o")
+            }
           }
         }
       }
     }
   })
   
+  # HELPER
   shift <- function(l, n){
     r = l
     if (n==0){  
